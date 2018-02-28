@@ -40,4 +40,5 @@ export default {
   userAuthCallback,
   saveUserAuth,
   getUser,
+  raw: spotifyApi,
 }

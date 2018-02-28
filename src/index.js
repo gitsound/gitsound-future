@@ -106,16 +106,28 @@ const getRepoPlaylist = async (rawPath) => {
   return json5.parse(raw)
 }
 
+const handlePlaylists = (playlists) => {
+
+  const parsedPlaylists = playlists.map((rawItem) => {
+
+  })
+}
+
 
 ;(async () => {
   const userAuthToken = await getUserAuth(fullPath)
 
   await spotify.saveUserAuth(userAuthToken)
 
-  console.log(await spotify.getUser())
+  // console.log(await spotify.getUser())
+
+  const { body: { items: playlists } } = await spotify.raw.getUserPlaylists()
+  console.log(playlists)
+
+  handlePlaylists(playlists)
 
 
-  console.log(await getRepoPlaylist(fullPath))
+  // console.log(await getRepoPlaylist(fullPath))
 
   // const playList = getRepoPlaylist(repoName)
   process.exit()

@@ -7,7 +7,7 @@ module.exports = {
     "ecmaVersion": 8,
     "ecmaFeatures": {
       // "jsx": true,
-      "experimentalObjectRestSpread": true
+      "experimentalObjectRestSpread": true,
     }
   },
   "globals": {
@@ -25,6 +25,6 @@ module.exports = {
     "space-before-function-paren": ["error", "always"],
     "func-style": ["error", "expression", { "allowArrowFunctions": true }],
     "func-names": ["error", "as-needed"],
-    "import/no-extraneous-dependencies": ["error", {"devDependencies": ["**/*.test.js", "rollup.config.js"]}]
+    "import/no-extraneous-dependencies": ["error", {"devDependencies": ["**/*.test.js", "rollup.config.js"]}],
   }
 }

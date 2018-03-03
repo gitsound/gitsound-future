@@ -19,6 +19,7 @@ module.exports = {
       "comments": 100
     }],
     "linebreak-style": ["error", "unix"],
+    "no-console": "off",
     "quotes": ["error", "single", { "avoidEscape": true }],
     "semi-style": ["error", "first"],
     "semi": ["error", "never"],

@@ -1,6 +1,7 @@
+import opn from 'opn'
 import express from 'express'
 import spotify from './spotify'
-import opn from 'opn'
+
 
 // takes a function as an input to return the new user Auth Id
 export const getUserAuthTokenFromWeb = () => new Promise((resolve) => {

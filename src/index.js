@@ -11,26 +11,23 @@ const filePrefix = './git-repos'
 const repoName = 'test2'
 const fullPath = `${filePrefix}/${repoName}`
 
-// const createRepo = async (repoName) => {
-//   const repoPath = path.resolve(`./git-repos/${repoName}`)
-//   const isBare = 0
+const createRepo = async () => {
+  const isBare = 0
 
-//   return await git.Repository.init(repoPath, isBare)
-// }
+  return await git.Repository.init(fullPath, isBare)
+}
 
-// const openRepo = async (repoName) => {
-//   const repoPath = path.resolve(`./git-repos/${repoName}`)
-
-//   return await git.Repository.open(pathToRepo)
-// }
+const openRepo = async () => {
+  return await git.Repository.open(fullPath)
+}
 
 // (async () => {
 
-// const newRepo = await createRepo('test2')
+// const newRepo = await createRepo()
 
 // console.log(newRepo)
 
-// const repo = await openRepo('test2')
+// const repo = await openRepo()
 
 // console.log(repo)
 
@@ -72,7 +69,7 @@ const LocalUser = (playlistPath) => {
   const setInfo = async (newState = {}) => {
     setState(newState)
 
-    fs.writeFile(`${playlistPath}/user.json`, json5.stringify(state), (err) => {
+    fs.writeFileSync(`${playlistPath}/user.json`, json5.stringify(state), (err) => {
       if (err) {
         console.error(err)
       }
@@ -87,7 +84,7 @@ const LocalUser = (playlistPath) => {
 
 const getUserAuth = async (playlistPath) => {
   const localUser = LocalUser(playlistPath)
-  const { authToken } = await localUser.getInfo(playlistPath)
+  // const { authToken } = await localUser.getInfo(playlistPath)
 
   // if (authToken !== null) {
   //   return authToken
@@ -106,26 +103,57 @@ const getRepoPlaylist = async (rawPath) => {
   return json5.parse(raw)
 }
 
-const handlePlaylists = (playlists) => {
-
-  const parsedPlaylists = playlists.map((rawItem) => {
-
+const handleTracks = rawTracks =>
+  rawTracks.map((track) => {
+    const { added_at: addedAt, track: { id } } = track
+    return {
+      id,
+      addedAt,
+    }
   })
-}
 
+const handlePlaylists = async rawPlaylists =>
+  rawPlaylists.map(async (playlist) => {
+    const { id, owner } = playlist
+    const {
+      body: { items },
+    } = await spotify.raw.getPlaylistTracks(owner.id, id)
+    const parsedTracks = handleTracks(items)
+    return {
+      id,
+      owner,
+      parsedTracks,
+    }
+  })
+
+const writePlaylistToFile = async (playlistObj) => {
+  console.log(json5.stringify(playlistObj))
+  fs.writeFileSync(
+    `${fullPath}/playlists/${playlistObj.id}.json`,
+    json5.stringify(playlistObj, null, 2),
+    (err) => {
+      if (err) {
+        console.error(err)
+      }
+    },
+  )
+}
 
 ;(async () => {
   const userAuthToken = await getUserAuth(fullPath)
 
   await spotify.saveUserAuth(userAuthToken)
 
-  // console.log(await spotify.getUser())
-
   const { body: { items: playlists } } = await spotify.raw.getUserPlaylists()
-  console.log(playlists)
+  // console.log(playlists)
 
-  handlePlaylists(playlists)
+  const parsedPlaylistsPromise = await handlePlaylists(playlists)
 
+  const parsedPlaylists = await Promise.all(parsedPlaylistsPromise)
+
+  // console.log(parsedPlaylists[0])
+
+  parsedPlaylists.forEach((playlist) => { writePlaylistToFile(playlist) })
 
   // console.log(await getRepoPlaylist(fullPath))
 

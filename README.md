@@ -1,6 +1,6 @@
 # gitsound-future
 
-WIP, doesn't even use git yet
+WIP
 
 ![Build Status](https://travis-ci.org/gitsound/gitsound-future.svg?branch=master)
 

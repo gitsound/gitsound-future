@@ -1,6 +1,6 @@
 import readFile from 'fs-readfile-promise'
 import path from 'path'
-import git from 'nodegit'
+import nodegit from 'nodegit'
 import json5 from 'json5'
 import fs from 'fs'
 import { getUserAuthTokenFromWeb } from './websever'
@@ -11,14 +11,65 @@ const filePrefix = './git-repos'
 const repoName = 'test2'
 const fullPath = `${filePrefix}/${repoName}`
 
+const getPlaylistFileName = playlistObj =>
+  `${fullPath}/playlists/${playlistObj.id}.json`
+
 const createRepo = async () => {
   const isBare = 0
 
-  return await git.Repository.init(fullPath, isBare)
+  return nodegit.Repository.init(fullPath, isBare)
 }
 
-const openRepo = async () => {
-  return await git.Repository.open(fullPath)
+const openRepo = async () => nodegit.Repository.open(`${fullPath}/.git`)
+
+const createAuthor = () => {
+  const currentTime = Math.floor(Date.now() / 1000)
+  return nodegit.Signature.create(
+    'gitsound',
+    'none',
+    currentTime,
+    0,
+  )
+}
+
+const createCommiter = () => createAuthor()
+
+const commitFile = async (playlistObj) => {
+  const filename = `playlists/${playlistObj.id}.json`
+
+  const repo = await openRepo()
+  const index = await repo.refreshIndex()
+  await index.addByPath(filename)
+  await index.write()
+  const oid = await index.writeTree()
+
+  const author = createAuthor()
+  const committer = createCommiter()
+
+  const { parentArr, message } = await (async () => {
+    // TODO: check if first commit has been made
+    const isFirstCommit = false
+    if (isFirstCommit === true) {
+      console.log('making first commit')
+      return {
+        parentArr: [],
+        message: `{"action": "init", "playlist": "${playlistObj.id}"}`,
+      }
+    }
+    const head = await nodegit.Reference.nameToId(repo, 'HEAD')
+    const parent = await repo.getCommit(head)
+    return {
+      parentArr: [parent],
+      message: `{"action": "change", "playlist": "${playlistObj.id}"}`,
+    }
+  })()
+
+  try {
+    await repo.createCommit('HEAD', author, committer, message, oid, parentArr)
+    console.log(`commited playlist: '${playlistObj.id}'`)
+  } catch (err) {
+    console.error(err)
+  }
 }
 
 // (async () => {
@@ -69,11 +120,15 @@ const LocalUser = (playlistPath) => {
   const setInfo = async (newState = {}) => {
     setState(newState)
 
-    fs.writeFileSync(`${playlistPath}/user.json`, json5.stringify(state), (err) => {
-      if (err) {
-        console.error(err)
-      }
-    })
+    fs.writeFileSync(
+      `${playlistPath}/user.json`,
+      json5.stringify(state, null, 2),
+      (err) => {
+        if (err) {
+          console.error(err)
+        }
+      },
+    )
   }
 
   return {
@@ -126,10 +181,9 @@ const handlePlaylists = async rawPlaylists =>
     }
   })
 
-const writePlaylistToFile = async (playlistObj) => {
-  console.log(json5.stringify(playlistObj))
+const writePlaylistToFile = (playlistObj) => {
   fs.writeFileSync(
-    `${fullPath}/playlists/${playlistObj.id}.json`,
+    getPlaylistFileName(playlistObj),
     json5.stringify(playlistObj, null, 2),
     (err) => {
       if (err) {
@@ -153,10 +207,20 @@ const writePlaylistToFile = async (playlistObj) => {
 
   // console.log(parsedPlaylists[0])
 
-  parsedPlaylists.forEach((playlist) => { writePlaylistToFile(playlist) })
+  // await Promise.all(parsedPlaylists.map(async (playlist) => {
+  //   writePlaylistToFile(playlist)
+  //   await commitFile(playlist)
+  // }))
+
+  // we need to make sure that items go one at a time because the index locks
+  // eslint-disable-next-line no-restricted-syntax
+  for (const playlist of parsedPlaylists) {
+    writePlaylistToFile(playlist)
+    await commitFile(playlist) // eslint-disable-line no-await-in-loop
+  }
 
   // console.log(await getRepoPlaylist(fullPath))
 
-  // const playList = getRepoPlaylist(repoName)
+  // const playlist = getRepoPlaylist(repoName)
   process.exit()
 })()
